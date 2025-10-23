@@ -17,7 +17,6 @@ export default function BlogCard({
   category,
   author,
   date,
-  image,
   readTime,
 }: BlogCardProps) {
   return (
