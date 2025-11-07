@@ -1,8 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 interface BlogCardProps {
+  slug: string;
   title: string;
   excerpt: string;
   category: string;
@@ -12,6 +14,7 @@ interface BlogCardProps {
 }
 
 export default function BlogCard({
+  slug,
   title,
   excerpt,
   category,
@@ -20,14 +23,15 @@ export default function BlogCard({
   readTime,
 }: BlogCardProps) {
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.5 }}
-      whileHover={{ y: -8 }}
-      className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700"
-    >
+    <Link href={`/blog/${slug}`}>
+      <motion.article
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.5 }}
+        whileHover={{ y: -8 }}
+        className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer"
+      >
       {/* Image Container */}
       <div className="relative h-56 overflow-hidden bg-gray-200 dark:bg-gray-700">
         <motion.div
@@ -92,5 +96,6 @@ export default function BlogCard({
         </div>
       </div>
     </motion.article>
+    </Link>
   );
 }
