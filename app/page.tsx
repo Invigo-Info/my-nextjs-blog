@@ -1,82 +1,92 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import BlogCard from '@/components/BlogCard';
 
+interface BlogPost {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  author: string;
+  date: string;
+  readTime: string;
+  tags: string[];
+}
+
 export default function Home() {
-  // Sample blog data
-  const blogArticles = [
-    {
-      id: 1,
-      title: 'Getting Started with Next.js 15: A Comprehensive Guide',
-      excerpt: 'Learn how to build modern web applications with Next.js 15, featuring the latest improvements in performance, routing, and server components.',
-      category: 'Technology',
-      author: 'John Doe',
-      date: 'Mar 15, 2024',
-      readTime: '5 min read',
-    },
-    {
-      id: 2,
-      title: 'The Art of Responsive Design: Best Practices',
-      excerpt: 'Discover essential techniques for creating beautiful, responsive websites that work seamlessly across all devices and screen sizes.',
-      category: 'Design',
-      author: 'Jane Smith',
-      date: 'Mar 12, 2024',
-      readTime: '7 min read',
-    },
-    {
-      id: 3,
-      title: 'Mastering TypeScript: Advanced Types and Patterns',
-      excerpt: 'Deep dive into advanced TypeScript features including generics, utility types, and design patterns for building robust applications.',
-      category: 'Development',
-      author: 'Mike Johnson',
-      date: 'Mar 10, 2024',
-      readTime: '8 min read',
-    },
-    {
-      id: 4,
-      title: 'Building Scalable APIs with Node.js and Express',
-      excerpt: 'Learn best practices for creating efficient, scalable REST APIs using Node.js, Express, and modern development patterns.',
-      category: 'Development',
-      author: 'Sarah Williams',
-      date: 'Mar 8, 2024',
-      readTime: '6 min read',
-    },
-    {
-      id: 5,
-      title: 'The Future of Web Animation: Framer Motion',
-      excerpt: 'Explore how to create stunning, performant animations for your React applications using Framer Motion library.',
-      category: 'Design',
-      author: 'Alex Brown',
-      date: 'Mar 5, 2024',
-      readTime: '5 min read',
-    },
-    {
-      id: 6,
-      title: 'Database Optimization: Tips and Tricks',
-      excerpt: 'Improve your database performance with these proven optimization techniques, indexing strategies, and query improvements.',
-      category: 'Technology',
-      author: 'Chris Davis',
-      date: 'Mar 3, 2024',
-      readTime: '9 min read',
-    },
-  ];
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
-    { name: 'Technology', count: 24, icon: '💻', color: 'from-blue-500 to-cyan-500' },
-    { name: 'Design', count: 18, icon: '🎨', color: 'from-purple-500 to-pink-500' },
-    { name: 'Development', count: 32, icon: '⚡', color: 'from-orange-500 to-red-500' },
-    { name: 'Business', count: 15, icon: '📈', color: 'from-green-500 to-emerald-500' },
+    { name: 'Technology', count: 2, icon: '💻', color: 'from-blue-500 to-cyan-500' },
+    { name: 'Design', count: 3, icon: '🎨', color: 'from-purple-500 to-pink-500' },
+    { name: 'Development', count: 3, icon: '⚡', color: 'from-orange-500 to-red-500' },
+    { name: 'Business', count: 0, icon: '📈', color: 'from-green-500 to-emerald-500' },
   ];
 
   const stats = [
-    { label: 'Articles Published', value: '500+' },
-    { label: 'Active Writers', value: '50+' },
-    { label: 'Monthly Readers', value: '100K+' },
-    { label: 'Topics Covered', value: '20+' },
+    { label: 'Articles Published', value: '8+' },
+    { label: 'Active Writers', value: '8+' },
+    { label: 'Monthly Readers', value: '10K+' },
+    { label: 'Topics Covered', value: '10+' },
   ];
+
+  // Fetch posts on mount
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const response = await fetch('/api/posts');
+        const data = await response.json();
+        setPosts(data);
+        setFilteredPosts(data);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPosts();
+  }, []);
+
+  // Filter posts based on category and search
+  useEffect(() => {
+    let filtered = posts;
+
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(
+        (post) => post.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (post) =>
+          post.title.toLowerCase().includes(query) ||
+          post.excerpt.toLowerCase().includes(query) ||
+          post.tags.some((tag) => tag.toLowerCase().includes(query))
+      );
+    }
+
+    setFilteredPosts(filtered);
+  }, [selectedCategory, searchQuery, posts]);
+
+  const handleCategoryClick = (categoryName: string) => {
+    setSelectedCategory(
+      selectedCategory === categoryName.toLowerCase() ? 'all' : categoryName.toLowerCase()
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -126,6 +136,7 @@ export default function Home() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => document.getElementById('articles')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 Start Reading
@@ -133,6 +144,7 @@ export default function Home() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700"
               >
                 Learn More
@@ -192,7 +204,15 @@ export default function Home() {
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 whileHover={{ y: -8, scale: 1.02 }}
-                className="group cursor-pointer"
+                onClick={() => {
+                  handleCategoryClick(category.name);
+                  document.getElementById('articles')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`group cursor-pointer ${
+                  selectedCategory === category.name.toLowerCase()
+                    ? 'ring-4 ring-white dark:ring-gray-700'
+                    : ''
+                }`}
               >
                 <div className={`bg-gradient-to-br ${category.color} p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300`}>
                   <div className="text-5xl mb-4">{category.icon}</div>
@@ -223,26 +243,109 @@ export default function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogArticles.map((article) => (
-              <BlogCard key={article.id} {...article} />
-            ))}
-          </div>
-
+          {/* Search and Filter Bar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mt-12"
+            className="mb-12 max-w-2xl mx-auto"
           >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              Load More Articles
-            </motion.button>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search articles by title, tag, or keyword..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-6 py-4 pl-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              />
+              <svg
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+
+            {/* Filter Tags */}
+            <div className="flex flex-wrap gap-3 justify-center mt-6">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-4 py-2 rounded-full font-medium transition-all ${
+                  selectedCategory === 'all'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-purple-500'
+                }`}
+              >
+                All
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  onClick={() => handleCategoryClick(category.name)}
+                  className={`px-4 py-2 rounded-full font-medium transition-all ${
+                    selectedCategory === category.name.toLowerCase()
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-purple-500'
+                  }`}
+                >
+                  {category.icon} {category.name}
+                </button>
+              ))}
+            </div>
           </motion.div>
+
+          {/* Articles Grid */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading articles...</p>
+            </div>
+          ) : filteredPosts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPosts.map((article) => (
+                <BlogCard
+                  key={article.id}
+                  slug={article.slug}
+                  title={article.title}
+                  excerpt={article.excerpt}
+                  category={article.category}
+                  author={article.author}
+                  date={new Date(article.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                  readTime={article.readTime}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                No articles found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Try adjusting your search or filter criteria
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+                className="mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold hover:shadow-lg transition-all"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -271,6 +374,7 @@ export default function Home() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 Join Our Community

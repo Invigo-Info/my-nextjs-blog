@@ -1,8 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [newsletterMessage, setNewsletterMessage] = useState('');
+
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactStatus, setContactStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [contactMessage, setContactMessage] = useState('');
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
@@ -17,6 +26,66 @@ export default function Footer() {
           behavior: 'smooth'
         });
       }
+    }
+  };
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewsletterStatus('loading');
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setNewsletterStatus('success');
+        setNewsletterMessage(data.message);
+        setNewsletterEmail('');
+        setTimeout(() => setNewsletterStatus('idle'), 5000);
+      } else {
+        setNewsletterStatus('error');
+        setNewsletterMessage(data.error);
+        setTimeout(() => setNewsletterStatus('idle'), 5000);
+      }
+    } catch {
+      setNewsletterStatus('error');
+      setNewsletterMessage('Failed to subscribe. Please try again.');
+      setTimeout(() => setNewsletterStatus('idle'), 5000);
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactStatus('loading');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setContactStatus('success');
+        setContactMessage(data.message);
+        setContactForm({ name: '', email: '', message: '' });
+        setTimeout(() => setContactStatus('idle'), 5000);
+      } else {
+        setContactStatus('error');
+        setContactMessage(data.error);
+        setTimeout(() => setContactStatus('idle'), 5000);
+      }
+    } catch {
+      setContactStatus('error');
+      setContactMessage('Failed to send message. Please try again.');
+      setTimeout(() => setContactStatus('idle'), 5000);
     }
   };
 
@@ -48,15 +117,6 @@ export default function Footer() {
         { label: 'FAQ', href: '#' },
       ],
     },
-    {
-      title: 'Connect',
-      links: [
-        { label: 'Twitter', href: 'https://twitter.com' },
-        { label: 'LinkedIn', href: 'https://linkedin.com' },
-        { label: 'GitHub', href: 'https://github.com' },
-        { label: 'Newsletter', href: '#contact' },
-      ],
-    },
   ];
 
   const containerVariants = {
@@ -83,12 +143,78 @@ export default function Footer() {
   return (
     <footer id="contact" className="bg-gray-900 text-gray-300 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Contact Form Section */}
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <div className="max-w-2xl mx-auto">
+            <h3 className="text-3xl font-bold text-white mb-4 text-center">Get In Touch</h3>
+            <p className="text-gray-400 text-center mb-8">
+              Have a question or feedback? We&apos;d love to hear from you.
+            </p>
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                  required
+                  className="px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-white placeholder-gray-500"
+                />
+                <input
+                  type="email"
+                  placeholder="Your Email"
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                  required
+                  className="px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-white placeholder-gray-500"
+                />
+              </div>
+              <textarea
+                placeholder="Your Message"
+                value={contactForm.message}
+                onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                required
+                rows={5}
+                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-white placeholder-gray-500 resize-none"
+              />
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={contactStatus === 'loading'}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {contactStatus === 'loading' ? 'Sending...' : 'Send Message'}
+              </motion.button>
+              {contactMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-4 rounded-lg ${
+                    contactStatus === 'success'
+                      ? 'bg-green-500/20 border border-green-500 text-green-400'
+                      : 'bg-red-500/20 border border-red-500 text-red-400'
+                  }`}
+                >
+                  {contactMessage}
+                </motion.div>
+              )}
+            </form>
+          </div>
+        </motion.div>
+
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12"
         >
           {/* Brand Section */}
           <motion.div variants={itemVariants} className="lg:col-span-1">
@@ -170,21 +296,36 @@ export default function Footer() {
           <div className="max-w-md mx-auto text-center">
             <h4 className="text-white font-semibold mb-2">Subscribe to our Newsletter</h4>
             <p className="text-gray-400 text-sm mb-4">Get the latest articles delivered to your inbox</p>
-            <form className="flex gap-2">
+            <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
               <input
                 type="email"
                 placeholder="Enter your email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                required
                 className="flex-1 px-4 py-2 rounded-full bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-white placeholder-gray-500 text-sm"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all duration-300 font-medium text-sm"
+                disabled={newsletterStatus === 'loading'}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all duration-300 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Subscribe
+                {newsletterStatus === 'loading' ? '...' : 'Subscribe'}
               </motion.button>
             </form>
+            {newsletterMessage && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mt-3 text-sm ${
+                  newsletterStatus === 'success' ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
+                {newsletterMessage}
+              </motion.p>
+            )}
           </div>
         </motion.div>
 
