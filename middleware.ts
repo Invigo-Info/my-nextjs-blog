@@ -2,38 +2,65 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  // Only run middleware for admin routes
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
+  if (!isAdminRoute) {
+    return NextResponse.next()
+  }
+
+  try {
+    // Check if Supabase environment variables are configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase environment variables are not configured')
+      // Allow access if Supabase is not configured (development mode)
+      return NextResponse.next()
     }
-  )
 
-  // Refresh session if expired
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    let supabaseResponse = NextResponse.next({
+      request,
+    })
 
-  // Check if accessing admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({
+              request,
+            })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    // Refresh session if expired
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser()
+
+    if (error) {
+      console.error('Error getting user:', error)
+    }
+
+    // Allow access to login and unauthorized pages
+    if (request.nextUrl.pathname === '/admin/login' ||
+        request.nextUrl.pathname === '/admin/unauthorized') {
+      return supabaseResponse
+    }
+
     if (!user) {
       // Redirect to login if not authenticated
       const redirectUrl = new URL('/admin/login', request.url)
@@ -43,17 +70,21 @@ export async function middleware(request: NextRequest) {
 
     // Check if user is admin
     const adminEmail = process.env.ADMIN_EMAIL
-    if (user.email !== adminEmail && request.nextUrl.pathname !== '/admin/unauthorized') {
+    if (adminEmail && user.email !== adminEmail) {
       return NextResponse.redirect(new URL('/admin/unauthorized', request.url))
     }
-  }
 
-  return supabaseResponse
+    return supabaseResponse
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // In case of error, allow the request to proceed
+    // This prevents the entire site from crashing
+    return NextResponse.next()
+  }
 }
 
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
