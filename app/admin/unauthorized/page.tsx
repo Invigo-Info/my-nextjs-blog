@@ -10,7 +10,7 @@ export default function UnauthorizedPage() {
             Unauthorized Access
           </h2>
           <p className="mt-2 text-gray-600">
-            You don't have permission to access this page.
+            You don&apos;t have permission to access this page.
           </p>
           <p className="mt-2 text-sm text-gray-500">
             Only administrators can access the admin dashboard.

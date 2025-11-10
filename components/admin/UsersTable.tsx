@@ -10,7 +10,7 @@ interface User {
   created_at: string
   updated_at: string
   is_active: boolean
-  metadata: any
+  metadata: Record<string, unknown> | null
 }
 
 interface PaginationInfo {
@@ -35,6 +35,37 @@ export default function UsersTable() {
   })
 
   const supabase = createClient()
+
+  const updateStats = useCallback(async (totalCount: number) => {
+    try {
+      // Get active users count
+      const { count: activeCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true)
+
+      // Get new users this month
+      const firstDayOfMonth = new Date()
+      firstDayOfMonth.setDate(1)
+      firstDayOfMonth.setHours(0, 0, 0, 0)
+
+      const { count: newCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', firstDayOfMonth.toISOString())
+
+      // Update DOM elements
+      const totalElement = document.getElementById('total-users')
+      const activeElement = document.getElementById('active-users')
+      const newElement = document.getElementById('new-users')
+
+      if (totalElement) totalElement.textContent = totalCount.toString()
+      if (activeElement) activeElement.textContent = (activeCount || 0).toString()
+      if (newElement) newElement.textContent = (newCount || 0).toString()
+    } catch (error) {
+      console.error('Error updating stats:', error)
+    }
+  }, [supabase])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -87,38 +118,7 @@ export default function UsersTable() {
     } finally {
       setLoading(false)
     }
-  }, [searchTerm, filterActive, sortBy, sortOrder, pagination.currentPage, pagination.pageSize, supabase])
-
-  const updateStats = async (totalCount: number) => {
-    try {
-      // Get active users count
-      const { count: activeCount } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
-
-      // Get new users this month
-      const firstDayOfMonth = new Date()
-      firstDayOfMonth.setDate(1)
-      firstDayOfMonth.setHours(0, 0, 0, 0)
-
-      const { count: newCount } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', firstDayOfMonth.toISOString())
-
-      // Update DOM elements
-      const totalElement = document.getElementById('total-users')
-      const activeElement = document.getElementById('active-users')
-      const newElement = document.getElementById('new-users')
-
-      if (totalElement) totalElement.textContent = totalCount.toString()
-      if (activeElement) activeElement.textContent = (activeCount || 0).toString()
-      if (newElement) newElement.textContent = (newCount || 0).toString()
-    } catch (error) {
-      console.error('Error updating stats:', error)
-    }
-  }
+  }, [searchTerm, filterActive, sortBy, sortOrder, pagination.currentPage, pagination.pageSize, supabase, updateStats])
 
   useEffect(() => {
     fetchUsers()
